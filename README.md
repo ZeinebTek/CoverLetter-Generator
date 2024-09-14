@@ -19,13 +19,13 @@ This project uses Google's Gemini Pro model and LangChain to generate personaliz
 ### **Clone the repository:**
 
    ```bash
-   git clone https://github.com/ZeinebTek/Cover-Letter-Generator.git
+   git clone https://github.com/ZeinebTek/CoverLetter-Generator.git
    ```
 
 ### **Install the required libraries:**
 
 
-    cd Cover-Letter-Generator
+    cd CoverLetter-Generator
     pip install -r requirements.txt
     
    
