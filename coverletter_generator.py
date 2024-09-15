@@ -1,10 +1,13 @@
+from io import BytesIO
+import os
+import tempfile
+from pdf_2_docx.pdf_2_docx_v2 import convert_pdf_to_docx
 from dotenv import load_dotenv
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import Docx2txtLoader
-from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 
@@ -18,20 +21,57 @@ CHUNK_OVERLAP = 200
 load_dotenv()
 
 
-def load_and_split_documents(cv_path, transcript_path, certificates_path):
+def load_and_split_documents(cv_file, transcript_file=None, certificates_file=None):
     """Loads and splits the CV, transcripts, and certificates."""
-    cv_loader = Docx2txtLoader(cv_path)
-    transcript_loader = Docx2txtLoader(transcript_path)
-    certificates_loader = Docx2txtLoader(certificates_path)
-    cv_docs = cv_loader.load()
-    transcript_docs = transcript_loader.load()
-    certificates_docs = certificates_loader.load()
-    all_docs = cv_docs + transcript_docs + certificates_docs
+
+    def ensure_docx_content(file):
+        """If the file is a PDF, convert it to an in-memory DOCX; otherwise return the DOCX content."""
+        if file.name.lower().endswith(".pdf"):
+            return convert_pdf_to_docx(file.name, save=False)
+        return file
+
+    cv_docx = ensure_docx_content(cv_file)
+    cv_docx = load_docx_from_memory(cv_docx) if isinstance(
+        cv_docx, BytesIO) else load_docx_from_file(cv_docx)
+
+    transcript_docx = ensure_docx_content(transcript_file)
+    transcript_docx = load_docx_from_memory(transcript_docx) if isinstance(
+        transcript_docx, BytesIO) else load_docx_from_file(transcript_docx)
+    
+    certificates_docx = ensure_docx_content(certificates_file)
+    certificates_docx = load_docx_from_memory(certificates_docx) if isinstance(
+        certificates_docx, BytesIO) else load_docx_from_file(certificates_docx)
+
+    all_docs = cv_docx + transcript_docx + certificates_docx
+
+    # Split documents
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
-    )
+        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     splits = text_splitter.split_documents(all_docs)
+
     return splits
+
+
+def load_docx_from_memory(docx_io):
+    """Load DOCX content from a BytesIO object using LangChain's Docx2txtLoader."""
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_file:
+        temp_file.write(docx_io.getvalue())
+        temp_file_path = temp_file.name
+
+    loader = Docx2txtLoader(temp_file_path)
+    docs = loader.load()
+    os.remove(temp_file_path)
+
+    return docs 
+
+
+def load_docx_from_file(file_path):
+    """Load DOCX content using LangChain's Docx2txtLoader."""
+    loader = Docx2txtLoader(file_path)
+    docs = loader.load()
+
+    return docs
 
 
 class GoogleEmbeddingFunction(EmbeddingFunction):
