@@ -48,7 +48,7 @@ This project uses Google's Gemini Pro model and LangChain to generate personaliz
 
 ### Upload your documents:
  * Upload your CV (docx or pdf format).
- * Optionally upload your transcripts and certificates (docx or pdf format).
+ * Optionally upload your transcripts and certificates (docx or pdf format) and pass the url to your portfolio website.
 ### Enter the job description:
  * Paste the job description into the text box.
 ### Adjust the temperature (optional):

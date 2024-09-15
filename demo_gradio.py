@@ -6,10 +6,10 @@ from coverletter_generator import (
     generate_cover_letter,
 )
 
-def generate_cover_letter_with_ui(cv, transcript, certificates, job_description, temperature):
+def generate_cover_letter_with_ui(cv, transcript, certificates, portfolio, job_description, temperature):
     """Generates a cover letter using the provided documents and job description."""
     
-    splits = load_and_split_documents(cv, transcript, certificates)
+    splits = load_and_split_documents(cv, transcript, certificates, portfolio)
     vectorstore = create_vectorstore(splits)
     qa_chain = create_qa_chain(vectorstore=vectorstore, temperature=temperature)
     cover_letter = generate_cover_letter(job_description, qa_chain)
@@ -22,6 +22,7 @@ iface = gr.Interface(
         gr.File(label="Upload your CV (PDF or DOCX)", file_types=['.docx', '.pdf']), 
         gr.File(label="Upload your transcripts (PDF or DOCX) (Optional)", file_types=['.docx', '.pdf']),
         gr.File(label="Upload your certificates (PDF or DOCX) (Optional)", file_types=['.docx', '.pdf']),
+        gr.Textbox(label="Enter your portfolio website URL (Optional)"),
         gr.Textbox(lines=10, label="Enter job description"),
         gr.Slider(0, 1, value=0.7, label="Temperature"),
     ],

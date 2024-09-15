@@ -10,6 +10,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+from langchain_community.document_loaders import UnstructuredURLLoader
 
 # Constants
 EMBEDDING_MODEL = "models/text-embedding-004"
@@ -21,8 +22,8 @@ CHUNK_OVERLAP = 200
 load_dotenv()
 
 
-def load_and_split_documents(cv_file, transcript_file=None, certificates_file=None):
-    """Loads and splits the CV, transcripts, and certificates."""
+def load_and_split_documents(cv_file, transcript_file=None, certificates_file=None, portfolio_url=None):
+    """Loads and splits the CV, transcripts, certificates, and portfolio website."""
 
     def ensure_docx_content(file):
         """If the file is a PDF, convert it to an in-memory DOCX; otherwise return the DOCX content."""
@@ -33,16 +34,25 @@ def load_and_split_documents(cv_file, transcript_file=None, certificates_file=No
     cv_docx = ensure_docx_content(cv_file)
     cv_docx = load_docx_from_memory(cv_docx) if isinstance(
         cv_docx, BytesIO) else load_docx_from_file(cv_docx)
-
-    transcript_docx = ensure_docx_content(transcript_file)
-    transcript_docx = load_docx_from_memory(transcript_docx) if isinstance(
-        transcript_docx, BytesIO) else load_docx_from_file(transcript_docx)
     
-    certificates_docx = ensure_docx_content(certificates_file)
-    certificates_docx = load_docx_from_memory(certificates_docx) if isinstance(
-        certificates_docx, BytesIO) else load_docx_from_file(certificates_docx)
 
-    all_docs = cv_docx + transcript_docx + certificates_docx
+    if transcript_file:
+        transcript_docx = ensure_docx_content(transcript_file)
+        transcript_docx = load_docx_from_memory(transcript_docx) if isinstance(
+            transcript_docx, BytesIO) else load_docx_from_file(transcript_docx)
+
+    if certificates_file: 
+        certificates_docx = ensure_docx_content(certificates_file)
+        certificates_docx = load_docx_from_memory(certificates_docx) if isinstance(
+            certificates_docx, BytesIO) else load_docx_from_file(certificates_docx)
+    
+    if portfolio_url:
+        print("Loading portfolio website...")
+        loader = UnstructuredURLLoader(urls=[portfolio_url])
+        print("Loading portfolio website done.")
+        portfolio_docs = loader.load()
+
+    all_docs = cv_docx + transcript_docx + certificates_docx + portfolio_docs
 
     # Split documents
     text_splitter = RecursiveCharacterTextSplitter(
@@ -115,16 +125,16 @@ def create_qa_chain(vectorstore, temperature=0.0):
 def generate_cover_letter(job_description, qa_chain):
     """Generates a cover letter based on the job description and context."""
     prompt_template = """
-    You are a helpful AI assistant that generates cover letters based on a provided CV, transcripts, certificates and job description.
+    You are a helpful AI assistant that generates cover letters that will make a first good impression based on a provided CV, transcripts, certificates, portfolio and job description.
 
     Here's the job description:
     ```
     {job_description}
     ```
 
-    Based on the provided CV and transcripts, write a complete cover letter tailored to this job description. 
+    Based on the provided CV and transcripts, write a complete cover letter tailored to this job description and make it very appealing to a recruiter. 
     Highlight relevant skills and experiences from my background that align with the requirements and responsibilities mentioned in the job description.
-    I am a highly motivated and detail-oriented individual, known for my rigorous approach to tasks and my ability to work independently with minimal supervision. I take pride in my strong work ethic, consistently delivering high-quality results. 
+    Add the facts that I am a highly motivated and detail-oriented individual, known for my rigorous approach to tasks and my ability to work independently with minimal supervision. I take pride in my strong work ethic, consistently delivering high-quality results. 
     I excel in communication, ensuring clarity and collaboration within teams, and thrive in environments that require both individual contribution and teamwork. 
     My adaptability and problem-solving skills allow me to tackle challenges efficiently, making me a reliable and self-sufficient team member who can lead or support projects with equal effectiveness.
     I want to make sure that the cover letter is well-structured, professional, and engaging to the reader to make them want to learn more about me as a candidate.
