@@ -40,17 +40,23 @@ def load_and_split_documents(cv_file, transcript_file=None, certificates_file=No
         transcript_docx = ensure_docx_content(transcript_file)
         transcript_docx = load_docx_from_memory(transcript_docx) if isinstance(
             transcript_docx, BytesIO) else load_docx_from_file(transcript_docx)
+    else:
+        transcript_docx = []
 
     if certificates_file: 
         certificates_docx = ensure_docx_content(certificates_file)
         certificates_docx = load_docx_from_memory(certificates_docx) if isinstance(
             certificates_docx, BytesIO) else load_docx_from_file(certificates_docx)
+    else:
+        certificates_docx = []
     
     if portfolio_url:
         print("Loading portfolio website...")
         loader = UnstructuredURLLoader(urls=[portfolio_url])
         print("Loading portfolio website done.")
         portfolio_docs = loader.load()
+    else:
+        portfolio_docs = []
 
     all_docs = cv_docx + transcript_docx + certificates_docx + portfolio_docs
 
